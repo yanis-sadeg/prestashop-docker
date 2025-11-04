@@ -48,7 +48,7 @@ The project uses Docker Compose with 3 main services:
 ┌─────────────────────────────────────────────────────┐
 │                   prestashop:8080                   │
 │  - PrestaShop 8.1.7                                   │
-│  - PHP 8.1 with Xdebug                              │
+│  - PHP 8.3 with Xdebug                              │
 │  - Apache 2.4                                       │
 └─────────────────┬───────────────────────────────────┘
                   │
