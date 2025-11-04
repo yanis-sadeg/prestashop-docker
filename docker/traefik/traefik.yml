@@ -1,0 +1,42 @@
+api:
+  dashboard: true
+  insecure: true  # Dashboard accessible on port 8080 (dev only)
+
+entryPoints:
+  web:
+    address: ":80"
+    # HTTP to HTTPS redirect (uncomment for production)
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: websecure
+    #       scheme: https
+
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik-public
+
+certificatesResolvers:
+  # Let's Encrypt configuration for production
+  # Uncomment and configure environment variables when moving to production
+  letsencrypt:
+    acme:
+      email: ${LETSENCRYPT_EMAIL:-admin@localhost}
+      storage: /letsencrypt/acme.json
+      # Use caServer for Let's Encrypt staging (dev/test)
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
+
+# Logs for debugging
+log:
+  level: INFO
+
+accessLog: {}

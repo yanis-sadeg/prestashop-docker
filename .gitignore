@@ -1,0 +1,175 @@
+# ======================
+# Environment Variables
+# ======================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Keep example files
+!.env.example
+!.env.prod.example
+
+# ======================
+# Docker
+# ======================
+# Let's Encrypt certificates and ACME data
+docker/traefik/letsencrypt/acme.json
+docker/traefik/letsencrypt/*.pem
+
+# Traefik logs
+docker/traefik/logs/*.log
+
+# Docker volumes data (if mounted locally)
+docker-volumes/
+
+# ======================
+# PrestaShop
+# ======================
+# Cache and logs
+src/var/cache/*
+src/var/logs/*
+src/cache/*
+src/log/*
+
+# Uploads and downloads
+src/img/tmp/*
+src/upload/*
+src/download/*
+
+# Admin directory (varies per installation)
+src/admin*/
+
+# Installation directory (should be deleted after install)
+src/install/
+src/install-dev/
+
+# Config files with sensitive data
+src/config/settings.inc.php
+src/app/config/parameters.php
+src/app/config/parameters.yml
+
+# Themes cache
+src/themes/*/cache/
+src/themes/*/assets/cache/
+
+# Module development
+src/modules/*/vendor/
+src/modules/*/node_modules/
+
+# Translations
+src/translations/*
+!src/translations/.gitkeep
+
+# ======================
+# Database
+# ======================
+# Database dumps and backups
+*.sql
+*.sql.gz
+*.dump
+backup*.sql
+!docker/mariadb/import.sql
+
+# ======================
+# IDE & Editors
+# ======================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PhpStorm / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+
+# ======================
+# Operating System
+# ======================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ======================
+# Dependencies
+# ======================
+node_modules/
+vendor/
+composer.phar
+package-lock.json
+yarn.lock
+
+# ======================
+# Logs
+# ======================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ======================
+# Temporary Files
+# ======================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+
+# ======================
+# Build & Compiled Files
+# ======================
+*.compiled
+dist/
+build/
+
+# ======================
+# SSL Certificates (dev)
+# ======================
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Keep Let's Encrypt directory structure
+!docker/traefik/letsencrypt/.gitkeep
+
+# ======================
+# Testing
+# ======================
+coverage/
+.phpunit.result.cache
+
+# ======================
+# Git
+# ======================
+*.orig

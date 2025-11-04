@@ -1,0 +1,52 @@
+# ======================================
+# Traefik Configuration - PRODUCTION
+# ======================================
+# Configuration sécurisée sans dashboard public
+
+# API et Dashboard DÉSACTIVÉS pour la production
+api:
+  dashboard: false
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    # Redirection HTTP vers HTTPS en production
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik-public
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: ${LETSENCRYPT_EMAIL}
+      storage: /letsencrypt/acme.json
+      # Production Let's Encrypt
+      # Pour tester d'abord, décommentez la ligne ci-dessous (staging)
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
+
+# Logs minimaux en production
+log:
+  level: ERROR
+  filePath: "/var/log/traefik/traefik.log"
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  bufferingSize: 100

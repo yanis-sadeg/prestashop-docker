@@ -1,0 +1,68 @@
+# ======================================
+# Docker Compose - PRODUCTION
+# ======================================
+# Configuration sécurisée pour l'environnement de production
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  traefik:
+    # Override du port 8080 - NE PAS EXPOSER en production
+    ports:
+      - "80:80"     # HTTP (redirigé vers HTTPS)
+      - "443:443"   # HTTPS
+      # Port 8080 retiré pour la sécurité
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/traefik.prod.yml:/traefik.yml:ro  # Utilise la config prod
+      - ./docker/traefik/letsencrypt:/letsencrypt
+      - ./docker/traefik/logs:/var/log/traefik  # Logs persistants
+
+  prestashop:
+    build:
+      args:
+        INSTALL_XDEBUG: false  # Disable Xdebug in production
+    environment:
+      - PS_DEV_MODE=0  # Production mode
+      - PHP_DISPLAY_ERRORS=Off
+      - PHP_DISPLAY_STARTUP_ERRORS=Off
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=0  # Maximum performance
+
+      # SMTP Configuration - Production
+      # Use real SMTP server (Gmail, SendGrid, AWS SES, etc.)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_ENCRYPTION=${SMTP_ENCRYPTION:-tls}
+      - SMTP_AUTH=${SMTP_AUTH:-true}
+    labels:
+      # Configuration HTTPS en production avec Let's Encrypt
+      - "traefik.http.routers.prestashop.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.prestashop.entrypoints=web"
+      - "traefik.http.routers.prestashop.middlewares=redirect-to-https"
+
+      # Middleware de redirection HTTP vers HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+      # Configuration HTTPS avec Let's Encrypt
+      - "traefik.http.routers.prestashop-secure.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.prestashop-secure.entrypoints=websecure"
+      - "traefik.http.routers.prestashop-secure.tls=true"
+      - "traefik.http.routers.prestashop-secure.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.prestashop.loadbalancer.server.port=80"
+
+  phpmyadmin:
+    # In production, phpMyAdmin should not be publicly exposed
+    # Option 1: Remove it completely (recommended)
+    # Option 2: Secure it with Traefik + BasicAuth
+    # Option 3: Expose only locally (see below)
+    ports:
+      - "127.0.0.1:8081:80"  # Accessible only locally (SSH tunnel required)
+
+  mailhog:
+    # Mailhog is completely disabled in production
+    # All emails will be sent via real SMTP server configured above
+    profiles:
+      - disabled

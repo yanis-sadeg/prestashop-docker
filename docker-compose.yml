@@ -1,0 +1,156 @@
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "8080:8080" # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/traefik.yml:/traefik.yml:ro
+      - ./docker/traefik/letsencrypt:/letsencrypt
+    environment:
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@localhost}
+    networks:
+      - traefik-public
+      - default
+    restart: unless-stopped
+
+  prestashop:
+    build:
+      context: ./docker/prestashop
+      args:
+        INSTALL_XDEBUG: ${INSTALL_XDEBUG:-true}
+        PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-512M}
+        PHP_UPLOAD_MAX_FILESIZE: ${PHP_UPLOAD_MAX_FILESIZE:-64M}
+        PHP_POST_MAX_SIZE: ${PHP_POST_MAX_SIZE:-64M}
+        PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-600}
+        PHP_MAX_INPUT_VARS: ${PHP_MAX_INPUT_VARS:-10000}
+    container_name: prestashop
+    environment:
+      # PrestaShop
+      - TZ=Europe/Paris
+      - PS_DEV_MODE=1
+      - PS_INSTALL_AUTO=0
+      - DB_SERVER=mariadb
+      - DB_USER=root
+      - DB_PASSWD=root
+      - DB_NAME=prestashop
+
+      # PHP Configuration
+      - PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
+      - PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-64M}
+      - PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-64M}
+      - PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-600}
+      - PHP_MAX_INPUT_TIME=${PHP_MAX_INPUT_TIME:-600}
+      - PHP_MAX_INPUT_VARS=${PHP_MAX_INPUT_VARS:-10000}
+      - PHP_DISPLAY_ERRORS=${PHP_DISPLAY_ERRORS:-On}
+      - PHP_DISPLAY_STARTUP_ERRORS=${PHP_DISPLAY_STARTUP_ERRORS:-On}
+      - PHP_ERROR_REPORTING=${PHP_ERROR_REPORTING:-E_ALL}
+      - PHP_SESSION_GC_MAXLIFETIME=${PHP_SESSION_GC_MAXLIFETIME:-1440}
+      - PHP_SESSION_COOKIE_LIFETIME=${PHP_SESSION_COOKIE_LIFETIME:-0}
+      - PHP_TIMEZONE=${PHP_TIMEZONE:-Europe/Paris}
+      - PHP_REALPATH_CACHE_SIZE=${PHP_REALPATH_CACHE_SIZE:-4096k}
+      - PHP_REALPATH_CACHE_TTL=${PHP_REALPATH_CACHE_TTL:-600}
+
+      # OPcache
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY=${PHP_OPCACHE_MEMORY:-256}
+      - PHP_OPCACHE_INTERNED_STRINGS=${PHP_OPCACHE_INTERNED_STRINGS:-16}
+      - PHP_OPCACHE_MAX_FILES=${PHP_OPCACHE_MAX_FILES:-20000}
+      - PHP_OPCACHE_REVALIDATE_FREQ=${PHP_OPCACHE_REVALIDATE_FREQ:-2}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-1}
+
+      # SMTP Configuration (for email sending)
+      - SMTP_HOST=${SMTP_HOST:-mailhog}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_ENCRYPTION=${SMTP_ENCRYPTION:-none}
+      - SMTP_AUTH=${SMTP_AUTH:-false}
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost/ || exit 1" ]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+
+      # Configuration HTTP
+      - "traefik.http.routers.prestashop.rule=Host(`${DOMAIN:-localhost}`) || Host(`127.0.0.1`)"
+      - "traefik.http.routers.prestashop.entrypoints=web"
+      - "traefik.http.services.prestashop.loadbalancer.server.port=80"
+
+      # HTTPS Configuration (uncomment for production with Let's Encrypt)
+      # - "traefik.http.routers.prestashop-secure.rule=Host(`${DOMAIN:-localhost}`)"
+      # - "traefik.http.routers.prestashop-secure.entrypoints=websecure"
+      # - "traefik.http.routers.prestashop-secure.tls=true"
+      # - "traefik.http.routers.prestashop-secure.tls.certresolver=letsencrypt"
+
+      # HTTPS Configuration with self-signed certificate (dev)
+      - "traefik.http.routers.prestashop-secure.rule=Host(`${DOMAIN:-localhost}`) || Host(`127.0.0.1`)"
+      - "traefik.http.routers.prestashop-secure.entrypoints=websecure"
+      - "traefik.http.routers.prestashop-secure.tls=true"
+    networks:
+      - traefik-public
+      - default
+    restart: unless-stopped
+
+  mariadb:
+    build: ./docker/mariadb
+    container_name: mariadb
+    environment:
+      - TZ=Europe/Paris
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=prestashop
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -proot --silent || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2
+    container_name: phpmyadmin
+    environment:
+      - TZ=Europe/Paris
+      - PMA_HOST=mariadb
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - "8081:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    environment:
+      - TZ=Europe/Paris
+    profiles:
+      - dev # Only run in development
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+
+
+networks:
+  traefik-public:
+    name: traefik-public
