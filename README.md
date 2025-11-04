@@ -612,7 +612,7 @@ This project uses PrestaShop which is licensed under [Open Software License v3.0
 
 ## Author
 
-Docker Configuration for PrestaShop 8.1.7 - 2025
+Docker Configuration for PrestaShop 8.1.7 - Yanis Sadeg - [symplyweb.fr](https://symplyweb.fr) - 2025
 
 ---
 
