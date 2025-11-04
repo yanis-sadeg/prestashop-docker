@@ -1,4 +1,4 @@
-FROM prestashop/prestashop:9.0.1
+FROM php:8.3-apache
 
 # Build arguments to control environment
 ARG INSTALL_XDEBUG=true
@@ -8,14 +8,39 @@ ARG PHP_POST_MAX_SIZE=64M
 ARG PHP_MAX_EXECUTION_TIME=600
 ARG PHP_MAX_INPUT_VARS=10000
 
-# Install useful PHP extensions for production
+# Install PrestaShop required PHP extensions and tools
 RUN apt-get update && apt-get install -y \
     libzip-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libwebp-dev \
+    libicu-dev \
+    libonig-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
     zip \
     unzip \
-    && docker-php-ext-install opcache \
+    git \
+    curl \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_mysql \
+        mysqli \
+        gd \
+        intl \
+        zip \
+        opcache \
+        bcmath \
+        soap \
+        xml \
+        mbstring \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache modules
+RUN a2enmod rewrite headers expires
 
 # Conditional Xdebug installation (dev only)
 RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
