@@ -47,7 +47,7 @@ The project uses Docker Compose with 3 main services:
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   prestashop:8080                   │
-│  - PrestaShop 9.1                                   │
+│  - PrestaShop 8.1.7                                   │
 │  - PHP 8.1 with Xdebug                              │
 │  - Apache 2.4                                       │
 └─────────────────┬───────────────────────────────────┘
@@ -612,7 +612,7 @@ This project uses PrestaShop which is licensed under [Open Software License v3.0
 
 ## Author
 
-Docker Configuration for PrestaShop 9.1 - 2025
+Docker Configuration for PrestaShop 8.1.7 - 2025
 
 ---
 
